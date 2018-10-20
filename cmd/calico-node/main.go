@@ -14,6 +14,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -25,6 +26,7 @@ import (
 	"github.com/projectcalico/node/pkg/allocateipip"
 	"github.com/projectcalico/node/pkg/readiness"
 	"github.com/projectcalico/node/pkg/startup"
+	"github.com/projectcalico/node/pkg/vxlan"
 
 	"github.com/projectcalico/libcalico-go/lib/logutils"
 	"github.com/sirupsen/logrus"
@@ -38,6 +40,7 @@ var version = flagSet.Bool("v", false, "Display version")
 var runFelix = flagSet.Bool("felix", false, "Run Felix")
 var runStartup = flagSet.Bool("startup", false, "Initialize a new node")
 var runAllocateIPIP = flagSet.Bool("allocate-ipip-addr", false, "Allocate an IPIP address for this node")
+var runVXLAN = flagSet.Bool("vxlan", false, "run vxlan code")
 
 // Options for readiness checks.
 var birdReady = flagSet.Bool("bird-ready", false, "Run BIRD readiness checks")
@@ -92,6 +95,11 @@ func main() {
 		felix.Run("/etc/calico/felix.cfg")
 	} else if *runStartup {
 		startup.Run()
+	} else if *runVXLAN {
+		_, err := vxlan.New(context.Background())
+		if err != nil {
+			panic(err)
+		}
 	} else if *runConfd {
 		cfg, err := confdConfig.InitConfig(true)
 		cfg.ConfDir = "/etc/calico/confd"
