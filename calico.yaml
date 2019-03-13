@@ -592,6 +592,22 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+        - name: confd-init
+          image: calico/node:v3.6.0
+          command: ["calico-node", "-confd", "-confd-run-once"]
+          securityContext:
+            privileged: true
+          env:
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: DATASTORE_TYPE
+              value: "kubernetes"
+          volumeMounts:
+            - mountPath: /etc/calico/confd/config
+              name: bird-config
+              readOnly: false
       containers:
         - name: felix
           image: calico/node:v3.6.0
