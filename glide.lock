@@ -1,5 +1,5 @@
-hash: ec83349a52876790b585cb765d78b3f064c2bd737ddaadc67ede9df7c106ee49
-updated: 2019-04-03T12:39:44.783457164-07:00
+hash: c0468acc80c98efd17aad9d5956a9a6b7027a52447c8416c20dcf3b208c984ad
+updated: 2019-04-04T16:53:07.186758228-07:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -218,7 +218,7 @@ imports:
 - name: github.com/projectcalico/go-yaml-wrapper
   version: 598e54215bee41a19677faa4f0c32acd2a87eb56
 - name: github.com/projectcalico/libcalico-go
-  version: 060b38a73cc3e2a3fc4e9a11d05aaf2056234d13
+  version: 9083310e91b479601e36b1ec3cb0ea81a647fc11
   repo: https://github.com/caseydavenport/libcalico-go.git
   subpackages:
   - lib/apiconfig
@@ -272,6 +272,8 @@ imports:
 - name: github.com/projectcalico/typha
   version: 623a5350009ff5aa32409265a4c161b99b81bc97
   subpackages:
+  - pkg/config
+  - pkg/logutils
   - pkg/syncclient
   - pkg/syncproto
   - pkg/tlsutils
@@ -329,6 +331,7 @@ imports:
   - internal/timeseries
   - lex/httplex
   - trace
+  - websocket
 - name: golang.org/x/oauth2
   version: a6bd8cefa1811bd24b86f8902872e4e8225f74c4
   subpackages:
