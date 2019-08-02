@@ -29,6 +29,7 @@ import (
 
 	"github.com/projectcalico/libcalico-go/lib/apiconfig"
 	api "github.com/projectcalico/libcalico-go/lib/apis/v3"
+	v3 "github.com/projectcalico/libcalico-go/lib/apis/v3"
 	client "github.com/projectcalico/libcalico-go/lib/clientv3"
 	cerrors "github.com/projectcalico/libcalico-go/lib/errors"
 	"github.com/projectcalico/libcalico-go/lib/logutils"
@@ -68,6 +69,7 @@ var (
 	// Default values, names for different configs.
 	defaultLogSeverity        = "Info"
 	globalFelixConfigName     = "default"
+	globalBGPConfigName       = "default"
 	felixNodeConfigNamePrefix = "node."
 )
 
@@ -996,6 +998,54 @@ func ensureDefaultConfig(ctx context.Context, cfg *apiconfig.CalicoAPIConfig, c 
 				}
 			} else {
 				log.WithField("DefaultEndpointToHostAction", felixNodeCfg.Spec.DefaultEndpointToHostAction).Debug("Host Felix value already assigned")
+			}
+		}
+	}
+
+	// Configure a default BGP configuration if needed. Right now, we only need to do this if the user
+	// has configured cluster cidr advertisement through the environment variable. For historical purposes, we support
+	// this environment variable, but translate it to datastore configuration.
+	if clusterIPCIDR, exists := os.LookupEnv("CALICO_ADVERTISE_CLUSTER_CIDRS"); exists {
+		bgpCfg, err := c.BGPConfigurations().Get(ctx, globalBGPConfigName, options.GetOptions{})
+		if err != nil {
+			if _, ok := err.(cerrors.ErrorResourceDoesNotExist); !ok {
+				log.WithError(err).WithField("BGPConfig", globalBGPConfigName).Errorf("Error getting BGP global config")
+				return err
+
+			}
+
+			// Create the default config since it doesn't exist.
+			newCfg := api.NewBGPConfiguration()
+			newCfg.Name = globalBGPConfigName
+			_, err = c.BGPConfigurations().Create(ctx, newCfg, options.SetOptions{})
+			if err != nil {
+				if conflict, ok := err.(cerrors.ErrorResourceAlreadyExists); ok {
+					log.Infof("Ignoring conflict when setting value %s", conflict.Identifier)
+				} else {
+					log.WithError(err).WithField("BGPConfig", newCfg).Errorf("Error creating BGP global config")
+					return err
+				}
+			}
+		} else {
+			// It exists - update it if needed.
+			updateNeeded := false
+			if len(clusterIPCIDR) == 0 && bgpCfg.Spec.Services != nil {
+				updateNeeded = true
+				bgpCfg.Spec.Services = nil
+			} else if bgpCfg.Spec.Services == nil || bgpCfg.Spec.Services.ClusterCIDRS[0] != clusterIPCIDR {
+				updateNeeded = true
+				bgpCfg.Spec.Services = &v3.ServiceSpec{ClusterCIDRs: []string{clusterIPCIDR}}
+			}
+			if updateNeeded {
+				_, err = c.BGPConfigurations().Update(ctx, bgpCfg, options.SetOptions{})
+				if err != nil {
+					if conflict, ok := err.(cerrors.ErrorResourceUpdateConflict); ok {
+						log.Infof("Ignoring conflict when setting value %s", conflict.Identifier)
+					} else {
+						log.WithError(err).WithField("BGPConfig", bgpCfg).Errorf("Error updating BGP global config")
+						return err
+					}
+				}
 			}
 		}
 	}
