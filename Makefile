@@ -236,7 +236,8 @@ CONFD_VERSION?=$(shell git ls-remote git@github.com:projectcalico/confd $(CONFD_
 CONFD_OLDVER?=$(shell $(DOCKER_RUN) $(CALICO_BUILD) go list -m -f "{{.Version}}" $(CONFD_REPLACE))
 
 # Update felix and confd's pins to the latest versions, which also updates our libcalico dependency to the one required by them.
-update-felix-confd:
+update-felix-confd: update-pins clean build
+update-pins:
 	$(DOCKER_RUN) -i $(CALICO_BUILD) sh -c '\
 	if [[ ! -z "$(FELIX_VERSION)" ]] && [[ "$(FELIX_VERSION)" != "$(FELIX_OLDVER)" ]]; then \
 		echo "Updating felix version $(FELIX_OLDVER) to $(FELIX_VERSION) from $(FELIX_REPO)"; \
@@ -245,7 +246,8 @@ update-felix-confd:
 	if [[ ! -z "$(CONFD_VERSION)" ]] && [[ "$(CONFD_VERSION)" != "$(CONFD_OLDVER)" ]]; then \
 		echo "Updating confd version $(CONFD_OLDVER) to $(CONFD_VERSION) from $(CONFD_REPO)"; \
 		go mod edit -replace $(CONFD_REPLACE)=$(CONFD_REPO)@$(CONFD_VERSION); \
-	fi'
+	fi; \
+	go mod tidy;'
 
 git-status:
 	git status --porcelain
