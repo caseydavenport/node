@@ -1065,6 +1065,15 @@ func ensureDefaultConfig(ctx context.Context, cfg *apiconfig.CalicoAPIConfig, c 
 		}
 	}
 
+	// Create an empty default BGP configuration, so long as one doesn't already exist.
+	bgpcfg := api.NewBGPConfiguration()
+	bgpcfg.Name = "default"
+	_, err = c.BGPConfigurations().Create(ctx, bgpcfg)
+	if _, ok := err.(cerrors.ErrorResourceAlreadyExists); !ok {
+		// Return the error, allowing for the resource to already exist.
+		return err
+	}
+
 	return nil
 }
 
